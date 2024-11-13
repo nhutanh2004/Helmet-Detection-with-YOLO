@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Object Detection</title>
+    <style>
+        #video-container {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <h1>Upload an Image or Video for Object Detection</h1>
+    
+    <!-- Form for image upload -->
+    <form id="upload-form" action="/predict" method="post" enctype="multipart/form-data">
+        <input type="file" name="file" accept="image/*">
+        <input type="submit" value="Upload Image">
+    </form>
+
+    <!-- Form for video upload -->
+    <form id="upload-video-form" action="/process_video" method="post" enctype="multipart/form-data">
+        <input type="file" name="file" accept="video/*">
+        <input type="submit" value="Upload Video">
+    </form>
+
+    <!-- Form for RTSP stream URL -->
+    <form id="stream-form" action="/process_stream" method="post">
+        <input type="text" name="stream_url" placeholder="Enter RTSP Stream URL">
+        <input type="submit" value="Start Stream">
+    </form>
+
+    <div id="image-container">
+        <img id="processed-image" src="" alt="">
+    </div>
+
+    <div id="video-container">
+        <video id="processed-video" controls>
+            <source id="video-source" src="" type="video/mp4">
+        </video>
+    </div>
+
+    <script>
+        // Handle image upload
+        document.getElementById('upload-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            var formData = new FormData(this);
+            fetch('/predict', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById('processed-image').src = data.image_url;
+            })
+            .catch(error => console.error('Error:', error));
+        });
+
+        // Handle video upload
+        document.getElementById('upload-video-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            var formData = new FormData(this);
+            fetch('/process_video', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById('video-source').src = data.video_url;
+                document.getElementById('processed-video').load();
+                document.getElementById('video-container').style.display = 'block';
+            })
+            .catch(error => console.error('Error:', error));
+        });
+
+        // Handle RTSP stream
+        document.getElementById('stream-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            var formData = new FormData(this);
+            fetch('/process_stream', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                console.log(data.message);
+            })
+            .catch(error => console.error('Error:', error));
+        });
+    </script>
+</body>
+</html>
