@@ -15,8 +15,8 @@ if not os.path.exists('static'):
     os.makedirs('static')
 
 # Path to the model 
-# current_model_path = '/root/.cache/kagglehub/models/gbaonr/best5/pyTorch/default/1/best5.pt'
-current_model_path = r'C:\Users\phamh\.cache\kagglehub\models\gbaonr\best5\pyTorch\default\1\best5.pt'
+current_model_path = '/root/.cache/kagglehub/models/gbaonr/best5/pyTorch/default/1/best5.pt'
+# current_model_path = 'C:\Users\phamh\.cache\kagglehub\models\gbaonr\best5\pyTorch\default\1\best5.pt'
 
 # Function to check if the model needs to be updated
 def update_model():
