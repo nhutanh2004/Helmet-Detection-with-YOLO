@@ -37,9 +37,17 @@ models = load_models()
 # Define class names
 class_names = ['motorbike', 'DHelmet', 'DNoHelmet', 'P1Helmet', 'P1NoHelmet', 'P2Helmet', 'P2NoHelmet', 'P0Helmet', 'P0NoHelmet']
 
-@app.route('/')
-def home():
-    return render_template('index.html')
+@app.route('/') 
+def home(): 
+    return render_template('home.html') 
+
+@app.route('/image') 
+def upload_image(): 
+    return render_template('image.html') 
+
+@app.route('/video') 
+def upload_video():
+    return render_template('video.html')
 
 @app.route('/predict', methods=['POST'])
 def predict():
@@ -194,8 +202,8 @@ def process_video():
         os.remove(output_path)
     
     # Delete the original video file  
-    if os.path.exists(filename): 
-        os.remove(filename)
+    if os.path.exists(file_path): 
+        os.remove(file_path)
         
     print(f"Compressed video created successfully at: {compressed_output_path}")
     return jsonify({"video_url": f"/static/compressed_{filename}"})
