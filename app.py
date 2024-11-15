@@ -37,9 +37,61 @@ models = load_models()
 # Define class names
 class_names = ['motorbike', 'DHelmet', 'DNoHelmet', 'P1Helmet', 'P1NoHelmet', 'P2Helmet', 'P2NoHelmet', 'P0Helmet', 'P0NoHelmet']
 
+# # Function to count samples per class
+# def count_samples_per_class(boxes, labels):
+#     class_counts = [0] * len(class_names)
+#     for label in labels:
+#         class_counts[int(label)] += 1
+#     return class_counts, max(class_counts)
+
+# # Function to find max
+# def find_max(boxes, labels):
+#     classes_count, n_max_class = count_samples_per_class(boxes, labels)
+#     return classes_count, n_max_class
+
+# # Function to find the minority class and threshold
+# def minority(p, boxes, labels, scores, n):
+#     classes_count, n_max_class = find_max(boxes, labels)
+#     mean_samples = float(sum(classes_count) / n)
+#     alpha = float(mean_samples / n_max_class)
+
+#     rare_classes = set()
+#     for index, each_class in enumerate(classes_count):
+#         if each_class < (n_max_class * alpha):
+#             rare_classes.add(index)
+
+#     min_thresh = 1
+#     for idx, label in enumerate(labels):
+#         if label in rare_classes and scores[idx] < min_thresh:
+#             min_thresh = scores[idx]
+
+#     return max(min_thresh, p), rare_classes
+
+# # Function to optimize minority classes
+# def minority_optimizer_func(boxes, labels, scores, p=0.001):
+#     number_of_classes = len(class_names)
+#     minority_score, rare_classes = minority(p, boxes, labels, scores, number_of_classes)
+    
+#     print(f"Minority score: {minority_score}, Rare classes: {rare_classes}")
+    
+#     optimized_boxes, optimized_labels, optimized_scores = [], [], []
+#     for i in range(len(scores)):
+#         if scores[i] >= minority_score:
+#             optimized_boxes.append(boxes[i])
+#             optimized_labels.append(labels[i])
+#             optimized_scores.append(scores[i])
+    
+#     print(f"Optimized boxes: {optimized_boxes}")
+#     print(f"Optimized labels: {optimized_labels}")
+#     print(f"Optimized scores: {optimized_scores}")
+    
+#     return optimized_boxes, optimized_labels, optimized_scores
+
+
 # @app.route('/')
 # def home():
 #     return render_template('index.html')
+
 @app.route('/') 
 def home(): 
     return render_template('home.html') 
@@ -62,7 +114,8 @@ def predict():
     if file.filename == '':
         return jsonify({"error": "No selected file"})
     filename = secure_filename(file.filename)
-    confidence_threshold = float(request.form.get('confidenceThreshold', 0.6))
+    # confidence_threshold = float(request.form.get('confidenceThreshold', 0.6))
+    confidence_threshold = 0.000000000001 
 
     # Open image
     img = Image.open(io.BytesIO(file.read()))
@@ -152,6 +205,9 @@ def process_video():
 
         all_boxes, all_scores, all_labels = [], [], []
 
+        # confidence_threshold = float(request.form.get('confidenceThreshold', 0.6))
+        confidence_threshold = 0.000000000001 
+
         # Make predictions using all models
         for model in models:
             results = model.predict(img_array)
@@ -161,13 +217,20 @@ def process_video():
                     x1, y1, x2, y2 = box.xyxy[0].tolist()
                     conf = box.conf[0].item()
                     cls = int(box.cls[0].item())
-                    if conf >= 0.6:  # Use the selected confidence threshold
+                    if conf >= confidence_threshold:  # Use the selected confidence threshold
                         boxes.append([x1 / target_width, y1 / target_height, x2 / target_width, y2 / target_height])
                         labels.append(cls)
                         scores.append(conf)
             all_boxes.append(boxes)
             all_scores.append(scores)
             all_labels.append(labels)
+        # Optimize minority classes 
+        # optimized_boxes, optimized_labels, optimized_scores = [], [], [] 
+        # for boxes, labels, scores in zip(all_boxes, all_labels, all_scores): 
+        #     opt_boxes, opt_labels, opt_scores = minority_optimizer_func(boxes, labels, scores) 
+        #     optimized_boxes.append(opt_boxes) 
+        #     optimized_labels.append(opt_labels) 
+        #     optimized_scores.append(opt_scores)
 
         # Apply Weighted Box Fusion
         fused_boxes, fused_scores, fused_labels = weighted_boxes_fusion(all_boxes, all_scores, all_labels, iou_thr=0.5, skip_box_thr=0.001)
