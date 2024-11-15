@@ -25,6 +25,7 @@
         <video id="processed-video" controls>
             <source id="video-source" src="" type="video/mp4">
         </video>
+        <p><a id="download-link" href="#" download>Download Processed Video</a></p>
     </div>
 
     <script>
@@ -43,6 +44,10 @@
                 videoSource.src = data.video_url;
                 document.getElementById('processed-video').load();
                 document.getElementById('video-container').style.display = 'block';
+
+                // Update download link
+                const downloadLink = document.getElementById('download-link');
+                downloadLink.href = `/static/${data.video_url.split('/').pop()}`;
             })
             .catch(error => console.error('Error:', error));
         });

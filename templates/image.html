@@ -23,6 +23,7 @@
 
     <div id="image-container">
         <img id="processed-image" src="" alt="Processed Image">
+        <p><a id="download-link" href="#" download>Download Processed Image</a></p>
     </div>
 
     <script>
@@ -40,6 +41,10 @@
                 const imageElement = document.getElementById('processed-image');
                 imageElement.src = data.image_url;
                 document.getElementById('image-container').style.display = 'block';
+
+                // Update download link
+                const downloadLink = document.getElementById('download-link');
+                downloadLink.href = `/static/${data.image_url.split('/').pop()}`;
             })
             .catch(error => console.error('Error:', error));
         });

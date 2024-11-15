@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, jsonify, send_file
+from flask import Flask, render_template, request, jsonify, send_file, send_from_directory
 from ultralytics import YOLO
 import os
 import io
@@ -37,6 +37,9 @@ models = load_models()
 # Define class names
 class_names = ['motorbike', 'DHelmet', 'DNoHelmet', 'P1Helmet', 'P1NoHelmet', 'P2Helmet', 'P2NoHelmet', 'P0Helmet', 'P0NoHelmet']
 
+# @app.route('/')
+# def home():
+#     return render_template('index.html')
 @app.route('/') 
 def home(): 
     return render_template('home.html') 
@@ -48,6 +51,8 @@ def upload_image():
 @app.route('/video') 
 def upload_video():
     return render_template('video.html')
+
+
 
 @app.route('/predict', methods=['POST'])
 def predict():
@@ -197,17 +202,30 @@ def process_video():
                   '-strict', '-2', 
                   compressed_output_path 
                   ] 
+    # Debug for some time the compressed_output does not save properly
+    try:
+        result = subprocess.run(ffmpeg_cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+        if result.returncode != 0:
+            print(f"ffmpeg error: {result.stderr}")
+        else:
+            print(f"Compressed video created successfully at: {compressed_output_path}")
+    except Exception as e:
+        print(f"An error occurred: {e}")
     # Delete the intermediate processed video file  
     if os.path.exists(output_path): 
-        os.remove(output_path)
+       os.remove(output_path)
     
     # Delete the original video file  
     if os.path.exists(file_path): 
         os.remove(file_path)
         
-    print(f"Compressed video created successfully at: {compressed_output_path}")
+   
+
     return jsonify({"video_url": f"/static/compressed_{filename}"})
 
+@app.route('/download/<filename>', methods=['GET']) 
+def download_file(filename): 
+    return send_from_directory('static', filename, as_attachment=True)
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000)
