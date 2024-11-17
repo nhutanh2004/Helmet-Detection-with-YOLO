@@ -1,6 +1,0 @@
-Flask
-ultralytics
-Pillow
-opencv-python
-Werkzeug
-

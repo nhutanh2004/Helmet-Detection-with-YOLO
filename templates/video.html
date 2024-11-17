@@ -5,15 +5,21 @@
     <title>Upload Video for Object Detection</title>
     <style>
         #video-container {
-            display: none;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .video-box {
+            width: 45%;
+        }
+
+        .video-box video {
+            width: 100%;
         }
     </style>
 </head>
 <body>
     <h1>Upload a Video for Object Detection</h1>
-
-    <!-- Link to go back to the home page -->
-    <p><a href="/">Back to Home</a></p>
     
     <!-- Form for video upload -->
     <form id="upload-video-form" action="/process_video" method="post" enctype="multipart/form-data">
@@ -22,10 +28,20 @@
     </form>
 
     <div id="video-container">
-        <video id="processed-video" controls>
-            <source id="video-source" src="" type="video/mp4">
-        </video>
-        <p><a id="download-link" href="#" download>Download Processed Video</a></p>
+        <div id="original-video-container" class="video-box">
+            <h2>Original Video</h2>
+            <video id="original-video" controls>
+                <source id="original-video-source" src="" type="video/mp4">
+            </video>
+        </div>
+
+        <div id="processed-video-container" class="video-box">
+            <h2>Processed Video</h2>
+            <video id="processed-video" controls>
+                <source id="processed-video-source" src="" type="video/mp4">
+            </video>
+            <p><a id="download-link" href="#" download>Download Processed Video</a></p>
+        </div>
     </div>
 
     <script>
@@ -39,18 +55,28 @@
             })
             .then(response => response.json())
             .then(data => {
-                console.log("Video URL:", data.video_url); // Debug: Log video URL
-                const videoSource = document.getElementById('video-source');
-                videoSource.src = data.video_url;
+                console.log("Original Video URL:", data.original_video_url); // Debug: Log original video URL
+                console.log("Processed Video URL:", data.processed_video_url); // Debug: Log processed video URL
+    
+                // Display original video
+                const originalVideoSource = document.getElementById('original-video-source');
+                originalVideoSource.src = data.original_video_url;
+                document.getElementById('original-video').load();
+                document.getElementById('original-video-container').style.display = 'block';
+    
+                // Display processed video
+                const processedVideoSource = document.getElementById('processed-video-source');
+                processedVideoSource.src = data.processed_video_url;
                 document.getElementById('processed-video').load();
-                document.getElementById('video-container').style.display = 'block';
-
+                document.getElementById('processed-video-container').style.display = 'block';
+    
                 // Update download link
                 const downloadLink = document.getElementById('download-link');
-                downloadLink.href = `/static/${data.video_url.split('/').pop()}`;
+                downloadLink.href = data.processed_video_url;
             })
             .catch(error => console.error('Error:', error));
         });
     </script>
+    
 </body>
 </html>
