@@ -124,7 +124,12 @@ def process_video():
     filename = secure_filename(file.filename)
     file_path = os.path.join('static', filename)
     file.save(file_path)
-    
+
+    # Get parameters from the request
+    iou_thr = float(request.form['iou_thr'])
+    skip_box_thr = float(request.form['skip_box_thr'])
+    p = float(request.form['p'])
+
     # Open the video file
     cap = cv2.VideoCapture(file_path)
     if not cap.isOpened():
@@ -134,10 +139,9 @@ def process_video():
     frame_width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
     frame_height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
     frame_rate = int(cap.get(cv2.CAP_PROP_FPS))
-    target_fps = 5  # Desired frames per second for processing
-    if target_fps > frame_rate:
-        target_fps = frame_rate
-    
+    target_fps = 10  # Desired frames per second for processing
+    if frame_rate < target_fps:
+        target_fps = frame_rate  # Ensure target_fps is not greater than frame_rate
     frame_interval = frame_rate // target_fps  # Interval to skip frames
 
     target_width = 640
@@ -168,9 +172,8 @@ def process_video():
 
         all_boxes, all_scores, all_labels = [], [], []
 
-        # Use the batch size and device
+        # Use the batch size and device from the second function
         device = "cuda:0" if torch.cuda.is_available() else "cpu"
-        confidence_threshold = 0.001  # Use the confidence threshold from the second function
 
         # Make predictions using all models
         for model in models:
@@ -181,29 +184,27 @@ def process_video():
                     x1, y1, x2, y2 = box.xyxy[0].tolist()
                     conf = box.conf[0].item()
                     cls = int(box.cls[0].item())
-                    if conf >= confidence_threshold:  # Use the selected confidence threshold
-                        boxes.append([x1 / target_width, y1 / target_height, x2 / target_width, y2 / target_height])
-                        labels.append(cls)
-                        scores.append(conf)
+                    boxes.append([x1 / target_width, y1 / target_height, x2 / target_width, y2 / target_height])
+                    labels.append(cls)
+                    scores.append(conf)
             all_boxes.append(boxes)
             all_scores.append(scores)
             all_labels.append(labels)
-        #print(f"lables:{all_labels}")
-        #print(f"score:{all_scores}")
-        # Apply Weighted Box Fusion
-        fused_boxes, fused_scores, fused_labels = weighted_boxes_fusion(all_boxes, all_scores, all_labels, iou_thr=0.5, skip_box_thr=0.001)
+
+        # Apply Weighted Box Fusion with user parameters
+        fused_boxes, fused_scores, fused_labels = weighted_boxes_fusion(all_boxes, all_scores, all_labels, iou_thr=iou_thr, skip_box_thr=skip_box_thr)
 
         # Optimize minority classes
-        optimized_boxes, optimized_labels, optimized_scores = minority_optimizer_func(fused_boxes, fused_labels, fused_scores)
+        optimized_boxes, optimized_labels, optimized_scores = minority_optimizer_func(fused_boxes, fused_labels, fused_scores,p=p)
 
-        # Draw the bounding boxes
+        # Draw the bounding boxes with specific colors
         for i in range(len(optimized_boxes)):
             x1, y1, x2, y2 = map(int, [optimized_boxes[i][0] * target_width, optimized_boxes[i][1] * target_height, optimized_boxes[i][2] * target_width, optimized_boxes[i][3] * target_height])
             label = int(optimized_labels[i])  # Ensure label is an integer
             score = optimized_scores[i]
-            label_text = f'{class_names[label]}: {score:.2f}'
             color_rgb = class_colors[label]  # Get the RGB color for the class
             color_bgr = (color_rgb[2], color_rgb[1], color_rgb[0])  # Convert RGB to BGR
+            label_text = f'{class_names[label]}: {score:.2f}'
             cv2.rectangle(frame, (x1, y1), (x2, y2), color_bgr, 2)
             cv2.putText(frame, label_text, (x1, y1 - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, color_bgr, 2)
 
@@ -214,50 +215,29 @@ def process_video():
     cap.release()
     output.release()
 
-    # compressed_original_path = os.path.join('static', f"compressed_original_{filename}") 
-    # ffmpeg_cmd = ['./ffmpeg.exe', 
-    #               '-i', file_path, 
-    #               '-vcodec', 'h264', 
-    #               '-acodec', 'aac', 
-    #               '-strict', '-2', 
-    #               compressed_original_path ] 
-    # # Debug for some time the compressed output does not save properly 
-    # try: 
-    #     result = subprocess.run(ffmpeg_cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True) 
-    #     if result.returncode != 0:
-    #         print(f"ffmpeg error: {result.stderr}")
-    #     else: 
-    #         print(f"Compressed original video created successfully at: {compressed_original_path}") 
-    # except Exception as e: 
-    #     print(f"An error occurred: {e}")
-
-    # Compress the video using ffmpeg command line and capture stderr 
+    # Compress the processed video using ffmpeg command line and capture stderr
     compressed_output_path = os.path.join('static', f"compressed_{filename}")
     ffmpeg_cmd = ['./ffmpeg.exe',
                   '-i', output_path,
                   '-vcodec', 'h264',
                   '-acodec', 'aac',
                   '-strict', '-2',
+                  '-r', str(target_fps),  # Ensure the frame rate matches target_fps during compression
                   compressed_output_path
                   ]
-    # Debug for some time the compressed output does not save properly
     try:
         result = subprocess.run(ffmpeg_cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
         if result.returncode != 0:
             print(f"ffmpeg error: {result.stderr}")
         else:
-            print(f"Compressed video created successfully at: {compressed_output_path}")
+            print(f"Compressed processed video created successfully at: {compressed_output_path}")
     except Exception as e:
         print(f"An error occurred: {e}")
+
     # Delete the intermediate processed video file
     if os.path.exists(output_path):
         os.remove(output_path)
     
-    # # Delete the original video file
-    # if os.path.exists(file_path):
-    #     os.remove(file_path)
-        
-    #return jsonify({"video_url": f"/static/compressed_{filename}"})
     return jsonify({"original_video_url": f"/static/{filename}", "processed_video_url": f"/static/compressed_{filename}"})
 
 @app.route('/download/<filename>', methods=['GET'])
@@ -266,3 +246,5 @@ def download_file(filename):
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000)
+
+
