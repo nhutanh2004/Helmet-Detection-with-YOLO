@@ -201,9 +201,10 @@ def process_video():
             label = int(optimized_labels[i])  # Ensure label is an integer
             score = optimized_scores[i]
             label_text = f'{class_names[label]}: {score:.2f}'
-            color = class_colors[int(label)]
-            cv2.rectangle(frame, (x1, y1), (x2, y2), color, 2)
-            cv2.putText(frame, label_text, (x1, y1 - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5,color, 2)
+            color_rgb = class_colors[label]  # Get the RGB color for the class
+            color_bgr = (color_rgb[2], color_rgb[1], color_rgb[0])  # Convert RGB to BGR
+            cv2.rectangle(frame, (x1, y1), (x2, y2), color_bgr, 2)
+            cv2.putText(frame, label_text, (x1, y1 - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, color_bgr, 2)
 
         # Write the processed frame to the output video
         output.write(frame)
