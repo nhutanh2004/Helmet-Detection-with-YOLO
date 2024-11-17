@@ -174,6 +174,7 @@ def process_video():
 
         # Use the batch size and device from the second function
         device = "cuda:0" if torch.cuda.is_available() else "cpu"
+        confidence_threshold = 0.00001  # Use the confidence threshold from the second function
 
         # Make predictions using all models
         for model in models:
@@ -184,9 +185,10 @@ def process_video():
                     x1, y1, x2, y2 = box.xyxy[0].tolist()
                     conf = box.conf[0].item()
                     cls = int(box.cls[0].item())
-                    boxes.append([x1 / target_width, y1 / target_height, x2 / target_width, y2 / target_height])
-                    labels.append(cls)
-                    scores.append(conf)
+                    if conf >= confidence_threshold:  # Use the selected confidence threshold
+                        boxes.append([x1 / target_width, y1 / target_height, x2 / target_width, y2 / target_height])
+                        labels.append(cls)
+                        scores.append(conf)
             all_boxes.append(boxes)
             all_scores.append(scores)
             all_labels.append(labels)
