@@ -134,9 +134,10 @@ def process_video():
     frame_width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
     frame_height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
     frame_rate = int(cap.get(cv2.CAP_PROP_FPS))
-    target_fps = 10  # Desired frames per second for processing
+    target_fps = 5  # Desired frames per second for processing
     if target_fps > frame_rate:
         target_fps = frame_rate
+    
     frame_interval = frame_rate // target_fps  # Interval to skip frames
 
     target_width = 640
@@ -145,7 +146,7 @@ def process_video():
     
     output_path = os.path.join('static', f"predicted_{filename}")
     cv2_fourcc = cv2.VideoWriter_fourcc(*'mp4v')
-    output = cv2.VideoWriter(output_path, cv2_fourcc, frame_rate, (target_width, target_height))
+    output = cv2.VideoWriter(output_path, cv2_fourcc, target_fps, (target_width, target_height))
 
     frame_counter = 0  # Initialize frame counter
 
@@ -212,22 +213,23 @@ def process_video():
 
     cap.release()
     output.release()
-    compressed_original_path = os.path.join('static', f"compressed_original_{filename}") 
-    ffmpeg_cmd = ['./ffmpeg.exe', 
-                  '-i', file_path, 
-                  '-vcodec', 'h264', 
-                  '-acodec', 'aac', 
-                  '-strict', '-2', 
-                  compressed_original_path ] 
-    # Debug for some time the compressed output does not save properly 
-    try: 
-        result = subprocess.run(ffmpeg_cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True) 
-        if result.returncode != 0:
-            print(f"ffmpeg error: {result.stderr}")
-        else: 
-            print(f"Compressed original video created successfully at: {compressed_original_path}") 
-    except Exception as e: 
-        print(f"An error occurred: {e}")
+
+    # compressed_original_path = os.path.join('static', f"compressed_original_{filename}") 
+    # ffmpeg_cmd = ['./ffmpeg.exe', 
+    #               '-i', file_path, 
+    #               '-vcodec', 'h264', 
+    #               '-acodec', 'aac', 
+    #               '-strict', '-2', 
+    #               compressed_original_path ] 
+    # # Debug for some time the compressed output does not save properly 
+    # try: 
+    #     result = subprocess.run(ffmpeg_cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True) 
+    #     if result.returncode != 0:
+    #         print(f"ffmpeg error: {result.stderr}")
+    #     else: 
+    #         print(f"Compressed original video created successfully at: {compressed_original_path}") 
+    # except Exception as e: 
+    #     print(f"An error occurred: {e}")
 
     # Compress the video using ffmpeg command line and capture stderr 
     compressed_output_path = os.path.join('static', f"compressed_{filename}")
@@ -256,7 +258,8 @@ def process_video():
     #     os.remove(file_path)
         
     #return jsonify({"video_url": f"/static/compressed_{filename}"})
-    return jsonify({"original_video_url": f"/static/compressed_{filename}", "processed_video_url": f"/static/compressed_{filename}"})
+    return jsonify({"original_video_url": f"/static/{filename}", "processed_video_url": f"/static/compressed_{filename}"})
+
 @app.route('/download/<filename>', methods=['GET'])
 def download_file(filename):
     return send_from_directory('static', filename, as_attachment=True)
