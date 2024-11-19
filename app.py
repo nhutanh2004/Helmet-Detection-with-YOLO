@@ -11,6 +11,7 @@ import torch
 import ffmpeg
 import subprocess
 from class_colors import class_names, class_colors # Import the class names and colors
+from virtual_expander import *
 
 app = Flask(__name__)
 
@@ -197,13 +198,16 @@ def process_video():
         fused_boxes, fused_scores, fused_labels = weighted_boxes_fusion(all_boxes, all_scores, all_labels, iou_thr=iou_thr, skip_box_thr=skip_box_thr)
 
         # Optimize minority classes
-        optimized_boxes, optimized_labels, optimized_scores = minority_optimizer_func(fused_boxes, fused_labels, fused_scores,p=p)
+        optimized_boxes, optimized_labels, optimized_scores = minority_optimizer_func(fused_boxes, fused_labels, fused_scores, p=p)
 
+        # Use Virtual Expander to process results
+        #processed_boxes, processed_labels, processed_scores = Virtual_Expander(optimized_boxes, optimized_labels, optimized_scores)
+        processed_boxes, processed_labels, processed_scores = optimized_boxes, optimized_labels, optimized_scores
         # Draw the bounding boxes with specific colors
-        for i in range(len(optimized_boxes)):
-            x1, y1, x2, y2 = map(int, [optimized_boxes[i][0] * target_width, optimized_boxes[i][1] * target_height, optimized_boxes[i][2] * target_width, optimized_boxes[i][3] * target_height])
-            label = int(optimized_labels[i])  # Ensure label is an integer
-            score = optimized_scores[i]
+        for i in range(len(processed_boxes)):
+            x1, y1, x2, y2 = map(int, [processed_boxes[i][0] * target_width, processed_boxes[i][1] * target_height, processed_boxes[i][2] * target_width, processed_boxes[i][3] * target_height])
+            label = int(processed_labels[i])  # Ensure label is an integer
+            score = processed_scores[i]
             color_rgb = class_colors[label]  # Get the RGB color for the class
             color_bgr = (color_rgb[2], color_rgb[1], color_rgb[0])  # Convert RGB to BGR
             label_text = f'{class_names[label]}: {score:.2f}'
@@ -242,11 +246,11 @@ def process_video():
     
     return jsonify({"original_video_url": f"/static/{filename}", "processed_video_url": f"/static/compressed_{filename}"})
 
+
+
 @app.route('/download/<filename>', methods=['GET'])
 def download_file(filename):
     return send_from_directory('static', filename, as_attachment=True)
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000)
-
-
